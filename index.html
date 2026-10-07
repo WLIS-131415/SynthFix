@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-950">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoFix AI - Restauração e Edição de Imagens</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin-custom { animation: spin 1s linear infinite; }
+  </style>
+</head>
+<body class="h-full font-sans text-slate-100 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+
+  <input type="file" id="input-imagem" accept="image/*" class="hidden">
+
+  <!-- BARRA LATERAL -->
+  <aside class="w-full md:w-80 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0">
+    <div class="p-5 overflow-y-auto">
+      
+      <!-- LOGO & CRÉDITOS -->
+      <div class="flex items-center justify-between pb-6 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <div class="p-2 bg-indigo-600 rounded-lg">
+            <i data-lucide="wand-2" class="w-5 h-5 text-white"></i>
+          </div>
+          <span class="font-bold text-lg tracking-wide">EcoFix <span class="text-indigo-400">AI</span></span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-slate-800 px-3 py-1 rounded-full text-xs font-semibold text-amber-400 border border-amber-500/20">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          <span>12 Créditos</span>
+        </div>
+      </div>
+
+      <!-- BOTÃO DE UPLOAD -->
+      <div class="mt-6">
+        <button id="btn-selecionar-foto" class="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold rounded-xl transition flex items-center justify-center gap-2">
+          <i data-lucide="upload-cloud" class="w-5 h-5 text-indigo-400"></i>
+          <span>Selecionar Foto</span>
+        </button>
+      </div>
+
+      <!-- FERRAMENTAS -->
+      <div class="mt-6">
+        <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Ferramentas de Edição</h2>
+        
+        <div class="space-y-2">
+          <button data-tarefa="restaurar" class="btn-ferramenta w-full flex items-center gap-3 p-3 rounded-xl bg-indigo-600/10 border border-indigo-500/30 text-indigo-300 font-medium transition">
+            <i data-lucide="image" class="w-5 h-5 text-indigo-400"></i>
+            <div class="text-left">
+              <div class="text-sm font-semibold">Restaurar Foto Antiga</div>
+              <div class="text-xs text-slate-400">Melhora nitidez e restaura rostos</div>
+            </div>
+          </button>
+
+          <button data-tarefa="remover_fundo" class="btn-ferramenta w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-300 font-medium transition border border-transparent">
+            <i data-lucide="scissors" class="w-5 h-5 text-rose-400"></i>
+            <div class="text-left">
+              <div class="text-sm font-semibold">Remover Fundo</div>
+              <div class="text-xs text-slate-400">Recorte de precisão instantâneo</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- SLIDERS -->
+      <div class="mt-8">
+        <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Ajustes</h2>
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between text-xs text-slate-300 mb-1">
+              <span>Remoção de Ruído</span>
+              <span id="val-ruido">80%</span>
+            </div>
+            <input type="range" id="range-ruido" min="0" max="100" value="80" class="w-full accent-indigo-500 bg-slate-800 rounded-lg h-1.5 cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTÃO PROCESSAR -->
+    <div class="p-5 border-t border-slate-800 bg-slate-900">
+      <button id="btn-processar" class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 font-semibold text-white rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+        <i data-lucide="sparkles" class="w-5 h-5"></i>
+        <span>Processar Foto (1 Crédito)</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ÁREA DE PREVIEW -->
+  <main class="flex-1 flex flex-col justify-between bg-slate-950 relative overflow-hidden min-h-[400px]">
+    <header class="p-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/40 backdrop-blur-md">
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-medium text-slate-400">Estado:</span>
+        <span id="nome-arquivo" class="text-sm font-semibold text-slate-200">Nenhuma imagem selecionada</span>
+      </div>
+
+      <a id="btn-baixar" href="#" target="_blank" download="ecofix-resultado.png" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm rounded-lg transition opacity-50 pointer-events-none">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        <span>Baixar HD</span>
+      </a>
+    </header>
+
+    <div class="flex-1 flex items-center justify-center p-6 relative">
+      <div id="dropzone" class="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-8 text-center max-w-md cursor-pointer transition bg-slate-900/30">
+        <div class="p-4 bg-slate-800/80 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 text-indigo-400">
+          <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+        </div>
+        <h3 class="font-bold text-lg text-slate-200 mb-1">Toque para selecionar imagem</h3>
+        <p class="text-sm text-slate-400">Suporta PNG, JPG ou WEBP até 15MB</p>
+      </div>
+
+      <div id="loading-spinner" class="hidden flex flex-col items-center gap-4 text-indigo-400">
+        <div class="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin-custom"></div>
+        <p class="text-sm font-semibold text-slate-300">A processar imagem com IA...</p>
+      </div>
+
+      <div id="preview-container" class="hidden relative max-w-4xl max-h-[70vh] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+        <img id="img-preview" src="" alt="" class="max-h-[70vh] w-auto object-contain">
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let imagemBase64Completa = null;
+    let tarefaSelecionada = "restaurar";
+    // Atualizado para o servidor FastAPI local
+    const API_URL = "http://localhost:7700/processar";
+
+    document.addEventListener("DOMContentLoaded", () => lucide.createIcons());
+
+    const inputFile = document.getElementById('input-imagem');
+    const btnSelecionarFoto = document.getElementById('btn-selecionar-foto');
+    const dropzone = document.getElementById('dropzone');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const previewContainer = document.getElementById('preview-container');
+    const imgPreview = document.getElementById('img-preview');
+    const nomeArquivo = document.getElementById('nome-arquivo');
+    const btnProcessar = document.getElementById('btn-processar');
+    const btnBaixar = document.getElementById('btn-baixar');
+    const rangeRuido = document.getElementById('range-ruido');
+    const valRuido = document.getElementById('val-ruido');
+    const botoesFerramenta = document.querySelectorAll('.btn-ferramenta');
+
+    botoesFerramenta.forEach(btn => {
+      btn.addEventListener('click', () => {
+        botoesFerramenta.forEach(b => {
+          b.classList.remove('bg-indigo-600/10', 'border-indigo-500/30', 'text-indigo-300');
+          b.classList.add('hover:bg-slate-800', 'text-slate-300', 'border-transparent');
+        });
+        btn.classList.add('bg-indigo-600/10', 'border-indigo-500/30', 'text-indigo-300');
+        btn.classList.remove('hover:bg-slate-800', 'text-slate-300', 'border-transparent');
+        tarefaSelecionada = btn.getAttribute('data-tarefa');
+      });
+    });
+
+    rangeRuido.addEventListener('input', (e) => valRuido.innerText = e.target.value + '%');
+    btnSelecionarFoto.addEventListener('click', () => inputFile.click());
+    dropzone.addEventListener('click', () => inputFile.click());
+
+    inputFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        nomeArquivo.innerText = file.name;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          imagemBase64Completa = event.target.result;
+          imgPreview.src = event.target.result;
+          dropzone.classList.add('hidden');
+          previewContainer.classList.remove('hidden');
+          btnBaixar.classList.add('opacity-50', 'pointer-events-none');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    btnProcessar.addEventListener('click', async () => {
+      if (!imagemBase64Completa) {
+        alert("Por favor, selecione uma imagem primeiro!");
+        return;
+      }
+
+      btnProcessar.disabled = true;
+      previewContainer.classList.add('hidden');
+      loadingSpinner.classList.remove('hidden');
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tarefa: tarefaSelecionada,
+            imagem_base64: imagemBase64Completa,
+            nivel_ruido: rangeRuido.value + "%"
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.imagem_resultado) {
+          let srcFinal = data.imagem_resultado;
+          if (!srcFinal.startsWith("data:image/")) {
+            srcFinal = "data:image/png;base64," + srcFinal;
+          }
+          imgPreview.src = srcFinal;
+          btnBaixar.href = srcFinal;
+          btnBaixar.classList.remove('opacity-50', 'pointer-events-none');
+          loadingSpinner.classList.add('hidden');
+          previewContainer.classList.remove('hidden');
+        } else {
+          alert("Erro: " + (data.detail || data.erro || "Falha ao processar"));
+          loadingSpinner.classList.add('hidden');
+          previewContainer.classList.remove('hidden');
+        }
+      } catch (error) {
+        alert("Erro na requisição ao servidor backend.");
+        loadingSpinner.classList.add('hidden');
+        previewContainer.classList.remove('hidden');
+      } finally {
+        btnProcessar.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
